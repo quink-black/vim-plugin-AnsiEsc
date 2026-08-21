@@ -52,8 +52,6 @@ fun! AnsiEsc#AnsiEsc(rebuild)
    if has_key(s:state[bn], "cocu")|let &l:cocu= s:state[bn].cocu|endif
    hi! link ansiStop NONE
    syn clear
-   hi  clear
-   syn reset
    exe "set ft=".s:state[bn].ft
    if !has('conceal') && has_key(s:state[bn], "hl")
     let &l:hl= s:state[bn].hl
