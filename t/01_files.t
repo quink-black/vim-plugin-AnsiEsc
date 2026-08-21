@@ -20,7 +20,7 @@ foreach my $file ($ENV{ANSI_FILES} ? (split ' ', $ENV{ANSI_FILES}||'') : (glob '
 
     my (undef, $tmp_file) = tempfile;
 
-    system qq{t/bin/vimcat -o "$tmp_file" -u NONE -c 'set t_Co=8 | so plugin/cecutil.vim | so autoload/AnsiEsc.vim | call AnsiEsc#AnsiEsc(0)' "$file" };
+    system qq{t/bin/vimcat -o "$tmp_file" -u NONE -c 'set t_Co=8 | so autoload/AnsiEsc.vim | call AnsiEsc#AnsiEsc(0)' "$file" };
 
     my $vimcat_out = read_file $tmp_file;
 
