@@ -1791,26 +1791,6 @@ fun! AnsiEsc#AnsiEsc(rebuild)
    hi ansiWhiteGray         ctermfg=LightGray      ctermbg=DarkGray       guifg=LightGray      guibg=DarkGray     cterm=NONE         gui=NONE
    hi ansiGrayGray          ctermfg=DarkGray       ctermbg=DarkGray       guifg=DarkGray       guibg=DarkGray     cterm=NONE         gui=NONE
 
-   if v:version >= 700 && exists("+t_Co") && &t_Co == 256 && exists("g:ansiesc_256color")
-    " ---------------------------
-    " handle 256-color terminals: {{{3
-    " ---------------------------
-"    call Decho("set up 256-color highlighting groups")
-    let icolor= 1
-    while icolor < 256
-     let jcolor= 1
-     exe "hi ansiHL_".icolor."_0 ctermfg=".icolor
-     exe "hi ansiHL_0_".icolor." ctermbg=".icolor
-"     call Decho("exe hi ansiHL_".icolor." ctermfg=".icolor)
-     while jcolor < 256
-      exe "hi ansiHL_".icolor."_".jcolor." ctermfg=".icolor." ctermbg=".jcolor
-"      call Decho("exe hi ansiHL_".icolor."_".jcolor." ctermfg=".icolor." ctermbg=".jcolor)
-      let jcolor= jcolor + 1
-     endwhile
-     let icolor= icolor + 1
-    endwhile
-   endif
-
   else
    " ----------------------------------
    " not 8 or 256 color terminals (gui): {{{3
