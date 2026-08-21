@@ -25,6 +25,10 @@ endif
 let s:keepcpo= &cpo
 set cpo&vim
 
+" Per-buffer state, keyed by bufnr(): enabled, ft, and saved option
+" values restored on disable. Entries are removed on disable.
+let s:state= {}
+
 " ---------------------------------------------------------------------
 " AnsiEsc#AnsiEsc: toggles ansi-escape code visualization {{{2
 fun! AnsiEsc#AnsiEsc(rebuild)
@@ -37,23 +41,24 @@ fun! AnsiEsc#AnsiEsc(rebuild)
    return
   endif
   let bn= bufnr("%")
-  if !exists("s:AnsiEsc_enabled_{bn}")
-   let s:AnsiEsc_enabled_{bn}= 0
+  if !has_key(s:state, bn)
+   let s:state[bn]= {"enabled": 0}
   endif
-  if s:AnsiEsc_enabled_{bn}
+  if s:state[bn].enabled
    " disable AnsiEsc highlighting
-"   call Decho("disable AnsiEsc highlighting: s:AnsiEsc_ft_".bn."<".s:AnsiEsc_ft_{bn}."> bn#".bn)
-   if exists("g:colors_name")|let colorname= g:colors_name|endif
-   if exists("s:conckeep_{bufnr('%')}")|let &l:conc= s:conckeep_{bufnr('%')}|unlet s:conckeep_{bufnr('%')}|endif
-   if exists("s:colekeep_{bufnr('%')}")|let &l:cole= s:colekeep_{bufnr('%')}|unlet s:colekeep_{bufnr('%')}|endif
-   if exists("s:cocukeep_{bufnr('%')}")|let &l:cocu= s:cocukeep_{bufnr('%')}|unlet s:cocukeep_{bufnr('%')}|endif
+"   call Decho("disable AnsiEsc highlighting: ft<".s:state[bn].ft."> bn#".bn)
+   if has_key(s:state[bn], "conc")|let &l:conc= s:state[bn].conc|endif
+   if has_key(s:state[bn], "cole")|let &l:cole= s:state[bn].cole|endif
+   if has_key(s:state[bn], "cocu")|let &l:cocu= s:state[bn].cocu|endif
    hi! link ansiStop NONE
    syn clear
    hi  clear
    syn reset
-   exe "set ft=".s:AnsiEsc_ft_{bn}
-   if exists("colorname")|exe "colors ".colorname|endif
-   let s:AnsiEsc_enabled_{bn}= 0
+   exe "set ft=".s:state[bn].ft
+   if !has('conceal') && has_key(s:state[bn], "hl")
+    let &l:hl= s:state[bn].hl
+   endif
+   unlet s:state[bn]
    if !exists('g:no_drchip_menu') && !exists('g:no_ansiesc_menu')
     if has("gui_running") && has("menu") && &go =~# 'm'
      " menu support
@@ -61,15 +66,12 @@ fun! AnsiEsc#AnsiEsc(rebuild)
      exe 'menu '.g:DrChipTopLvlMenu.'AnsiEsc.Start<tab>:AnsiEsc		:AnsiEsc<cr>'
     endif
    endif
-   if !has('conceal')
-    let &l:hl= s:hlkeep_{bufnr("%")}
-   endif
 "   call Dret("AnsiEsc#AnsiEsc")
    return
   else
-   let s:AnsiEsc_ft_{bn}      = &ft
-   let s:AnsiEsc_enabled_{bn} = 1
-"   call Decho("enable AnsiEsc highlighting: s:AnsiEsc_ft_".bn."<".s:AnsiEsc_ft_{bn}."> bn#".bn)
+   let s:state[bn].ft      = &ft
+   let s:state[bn].enabled = 1
+"   call Decho("enable AnsiEsc highlighting: ft<".s:state[bn].ft."> bn#".bn)
    if !exists('g:no_drchip_menu') && !exists('g:no_ansiesc_menu')
     if has("gui_running") && has("menu") && &go =~# 'm'
      " menu support
@@ -84,14 +86,14 @@ fun! AnsiEsc#AnsiEsc(rebuild)
    if has("conceal")
     if v:version < 703
      if &l:conc != 3
-      let s:conckeep_{bufnr('%')}= &cole
+      let s:state[bn].conc= &l:conc
       setlocal conc=3
 "      call Decho("l:conc=".&l:conc)
      endif
     else
      if &l:cole != 3 || &l:cocu != "nv"
-      let s:colekeep_{bufnr('%')}= &l:cole
-      let s:cocukeep_{bufnr('%')}= &l:cocu
+      let s:state[bn].cole= &l:cole
+      let s:state[bn].cocu= &l:cocu
       setlocal cole=3 cocu=nv
 "      call Decho("l:cole=".&l:cole." l:cocu=".&l:cocu)
      endif
@@ -1512,7 +1514,7 @@ fun! AnsiEsc#AnsiEsc(rebuild)
    hi def link ansiIgnore	ansiStop
    hi def link ansiStop		Ignore
    hi def link ansiExtended	Ignore
-   let s:hlkeep_{bufnr("%")}= &l:hl
+   let s:state[bn].hl= &l:hl
    exe "setlocal hl=".substitute(&hl,'8:[^,]\{-},','8:Ignore,',"")
   endif
 
@@ -2244,7 +2246,7 @@ endfun
 " on for the buffer{{{2
 fun! AnsiEsc#BufReadPost()
   let bn= bufnr("%")
-  if exists("s:AnsiEsc_enabled_{bn}") && s:AnsiEsc_enabled_{bn}
+  if has_key(s:state, bn) && s:state[bn].enabled
    call AnsiEsc#AnsiEsc(1)
   endif
 endfun
