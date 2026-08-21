@@ -2076,6 +2076,7 @@ fun! s:MultiElementHandler()
    let mod          = "NONE,"
    let fg           = ""
    let bg           = ""
+   let tc           = []
 
    " if the ansiesc is
    if index(mehrules,ansiesc) == -1
@@ -2091,12 +2092,28 @@ fun! s:MultiElementHandler()
       continue
      elseif skip == 385
       " handling <esc>[38;5;...
-      if has("gui") && has("gui_running")
+      if s:UseGuiColor()
        let fg= s:Ansi2Gui(code)
       else
        let fg= code
       endif
       let skip= 0
+"      call Decho(" 2: building code=".code." skip=".skip.": mod<".mod."> fg<".fg."> bg<".bg.">")
+      continue
+
+     elseif skip == 38 && code == 2
+      " handling <esc>[38;2
+      let skip= 382
+"      call Decho(" 1: building code=".code." skip=".skip.": mod<".mod."> fg<".fg."> bg<".bg.">")
+      continue
+     elseif skip == 382
+      " handling <esc>[38;2;r;g;b
+      call add(tc, code)
+      if len(tc) == 3
+       let fg= s:Rgb2Color(tc[0], tc[1], tc[2])
+       let skip= 0
+       let tc = []
+      endif
 "      call Decho(" 2: building code=".code." skip=".skip.": mod<".mod."> fg<".fg."> bg<".bg.">")
       continue
 
@@ -2107,12 +2124,28 @@ fun! s:MultiElementHandler()
       continue
      elseif skip == 485
       " handling <esc>[48;5;...
-      if has("gui") && has("gui_running")
+      if s:UseGuiColor()
        let bg= s:Ansi2Gui(code)
       else
        let bg= code
       endif
       let skip= 0
+"      call Decho(" 4: building code=".code." skip=".skip.": mod<".mod."> fg<".fg."> bg<".bg.">")
+      continue
+
+     elseif skip == 48 && code == 2
+      " handling <esc>[48;2
+      let skip= 482
+"      call Decho(" 3: building code=".code." skip=".skip.": mod<".mod."> fg<".fg."> bg<".bg.">")
+      continue
+     elseif skip == 482
+      " handling <esc>[48;2;r;g;b
+      call add(tc, code)
+      if len(tc) == 3
+       let bg= s:Rgb2Color(tc[0], tc[1], tc[2])
+       let skip= 0
+       let tc = []
+      endif
 "      call Decho(" 4: building code=".code." skip=".skip.": mod<".mod."> fg<".fg."> bg<".bg.">")
       continue
 
@@ -2192,7 +2225,7 @@ fun! s:MultiElementHandler()
 
     " build highlighting rule
     let hirule= "hi ansiMEH".mehcnt
-    if has("gui") && has("gui_running")
+    if s:UseGuiColor()
      let hirule=hirule." gui=".mod
      if fg != ""| let hirule=hirule." guifg=".fg| endif
      if bg != ""| let hirule=hirule." guibg=".bg| endif
@@ -2237,6 +2270,48 @@ fun! s:Ansi2Gui(code)
   endif
 "  call Dret("s:Ansi2Gui ".guicolor)
   return guicolor
+endfun
+
+" ---------------------------------------------------------------------
+" s:UseGuiColor: true when highlight rules should use gui= colors {{{2
+fun! s:UseGuiColor()
+  return (has("gui") && has("gui_running"))
+        \ || (has("termguicolors") && &termguicolors)
+endfun
+
+" ---------------------------------------------------------------------
+" s:Rgb2Color: converts an r,g,b triplet (0-255) to a color spec {{{2
+"              usable in the active highlight mode: #rrggbb when gui
+"              colors apply, else the nearest xterm-256 color index.
+fun! s:Rgb2Color(r, g, b)
+  let r = 0 + a:r
+  let g = 0 + a:g
+  let b = 0 + a:b
+  if r < 0 | let r = 0 | elseif r > 255 | let r = 255 | endif
+  if g < 0 | let g = 0 | elseif g > 255 | let g = 255 | endif
+  if b < 0 | let b = 0 | elseif b > 255 | let b = 255 | endif
+  if s:UseGuiColor()
+   return printf("#%02x%02x%02x", r, g, b)
+  endif
+  return s:Rgb2Cterm(r, g, b)
+endfun
+
+" ---------------------------------------------------------------------
+" s:Rgb2Cterm: maps an r,g,b triplet onto the xterm-256 palette {{{2
+"              (integer arithmetic only; gray ramp for grays, else the
+"              6x6x6 color cube)
+fun! s:Rgb2Cterm(r, g, b)
+  if a:r == a:g && a:g == a:b
+   if a:r < 8
+    return 16
+   elseif a:r > 238
+    return 255
+   endif
+   return 232 + (a:r - 8) / 10
+  endif
+  return 16 + 36 * ((5 * a:r + 127) / 255)
+        \       + 6 * ((5 * a:g + 127) / 255)
+        \         +     ((5 * a:b + 127) / 255)
 endfun
 
 " ---------------------------------------------------------------------

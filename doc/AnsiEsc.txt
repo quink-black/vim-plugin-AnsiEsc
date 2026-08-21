@@ -52,6 +52,13 @@ Copyright: (c) 2004-2014 by Charles E. Campbell		*AnsiEsc-copyright*
 		highlighting rules for such sequences as are actually present
 		in the document.
 
+		Extended colors are supported: 256-color sequences
+		(<Esc>[38;5;Nm / <Esc>[48;5;Nm) and 24-bit truecolor
+		sequences (<Esc>[38;2;R;G;Bm / <Esc>[48;2;R;G;Bm).  With
+		'gui_running' or 'termguicolors' the exact color is used;
+		otherwise truecolor values are mapped to the nearest xterm-256
+		palette entry.
+
 	EXAMPLE~
 
 		You'll want to use   :AnsiEsc   to see the following properly!
