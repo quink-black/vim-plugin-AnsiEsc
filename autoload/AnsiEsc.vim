@@ -2057,7 +2057,9 @@ fun! AnsiEsc#AnsiEsc(rebuild)
 endfun
 
 " ---------------------------------------------------------------------
-" s:MultiElementHandler: builds custom syntax highlighting for three or more element ansi escape sequences {{{2
+" s:MultiElementHandler: builds custom syntax highlighting for multi element
+" ansi escape sequences not covered by the static rules: three or more
+" elements, and two-element sequences carrying a bright (90-107) color.
 fun! s:MultiElementHandler()
 "  call Dfunc("s:MultiElementHandler()")
   let curwp= winsaveview()
@@ -2065,7 +2067,7 @@ fun! s:MultiElementHandler()
   keepj norm! 0
   let mehcnt = 0
   let mehrules     = []
-  while search('\e\[;\=\d\+;\d\+;\d\+\(;\d\+\)*m','cW')
+  while search('\e\[;\=\d\+;\d\+\(;\d\+\)*m','cW')
    let curcol  = col(".")+1
    call search('m','cW')
    let mcol    = col(".")
@@ -2081,6 +2083,21 @@ fun! s:MultiElementHandler()
    " if the ansiesc is
    if index(mehrules,ansiesc) == -1
     let mehrules+= [ansiesc]
+
+    " Two-element sequences without a bright color already have static
+    " rules; leave those untouched.
+    if len(aecodes) < 3
+     let bright = 0
+     for acode in aecodes
+      if acode >= 90 && acode <= 107
+       let bright = 1
+       break
+      endif
+     endfor
+     if !bright
+      continue
+     endif
+    endif
 
     for code in aecodes
 
@@ -2200,6 +2217,22 @@ fun! s:MultiElementHandler()
       let bg= "cyan"
      elseif code == 47
       let bg= "white"
+
+     elseif code >= 90 && code <= 97
+      " bright foreground (aixterm); palette index 8-15 is code - 82
+      if s:UseGuiColor()
+       let fg= s:Ansi2Gui(code - 82)
+      else
+       let fg= code - 82
+      endif
+
+     elseif code >= 100 && code <= 107
+      " bright background (aixterm); palette index 8-15 is code - 92
+      if s:UseGuiColor()
+       let bg= s:Ansi2Gui(code - 92)
+      else
+       let bg= code - 92
+      endif
 
      elseif code == 38
       let skip= 38
